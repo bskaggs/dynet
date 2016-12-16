@@ -1,0 +1,47 @@
+FROM ubuntu:16.04
+
+#Install MKL
+ENV MKL_URL=http://registrationcenter-download.intel.com/akdlm/irc_nas/tec/9662/l_mkl_2017.0.098.tgz
+ENV MKL_VERSION=l_mkl_2017.0.098
+ARG ACCEPT_MKL_EULA=decline
+ENV ACCEPT_MKL_EULA $ACCEPT_MKL_EULA
+RUN if [ $ACCEPT_MKL_EULA != "accept" ]; then echo "You must run docker build with '--build-arg ACCEPT_MKL_EULA=accept' to indicate you accept the EULA for MKL." > /dev/stderr; exit 1; fi
+RUN apt-get update && apt-get install -y curl cpio && curl "${MKL_URL}" -o /opt/mkl.tar.gz && \
+  cd /opt && tar -xvf mkl.tar.gz && \
+  cd /opt/${MKL_VERSION} && \
+  sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA='$ACCEPT_MKL_EULA'/g' silent.cfg && \
+  sed -i 's/ACTIVATION_TYPE=exist_lic/ACTIVATION_TYPE=trial_lic/g' silent.cfg && \
+  ./install.sh -s silent.cfg && \
+  cd /opt && rm -rf /opt/${MKL_VERSION} /opt/mkl.tar.gz && \
+  apt-get -y remove curl cpio  && \
+  apt-get -y autoremove
+
+#Get eigen
+ENV EIGEN_VERSION 346ecdb
+RUN apt-get install -y mercurial && \
+    hg clone -r ${EIGEN_VERSION} https://bitbucket.org/eigen/eigen/ /opt/eigen && \
+    cd /opt/eigen && \
+    apt-get -y remove mercurial && \
+    apt-get -y autoremove
+
+#Build DyNet
+RUN apt-get update && apt-get install -y libboost-all-dev cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy
+COPY . /opt/dynet
+RUN cd /opt/dynet && \
+    mkdir build && \
+    cd build && \
+    cmake .. -DEIGEN3_INCLUDE_DIR=/opt/eigen -DMKL=TRUE -DMKL_ROOT=/opt/intel/mkl -DPYTHON=$(which python) && \
+    make -j$(nproc) install && \
+    cd python && \
+    python setup.py install
+
+ENV LD_PRELOAD=/opt/intel/mkl/lib/intel64/libmkl_def.so:/opt/intel/mkl/lib/intel64/libmkl_avx2.so:/opt/intel/mkl/lib/intel64/libmkl_core.so:/opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so:/opt/intel/mkl/lib/intel64/libmkl_intel_thread.so:/opt/intel/lib/intel64_lin/libiomp5.so
+
+RUN pip install jupyter
+
+ADD https://github.com/krallin/tini/releases/download/v0.13.1/tini /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
+
+EXPOSE 8888
+CMD ["/opt/dynet/docker/jupyter.sh"]
