@@ -1,4 +1,7 @@
 FROM ubuntu:16.04
+
+MAINTAINER Brad Skaggs <bskaggs@acm.org>
+
 #Get eigen
 ENV EIGEN_VERSION 346ecdb
 RUN apt-get install -y mercurial && \
