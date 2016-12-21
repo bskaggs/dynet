@@ -26,3 +26,5 @@ docker run -it --rm -p 8888:8888 dynet:mkl
 ```
 
 and then visit http://localhost:8888 in your browser.
+
+You may optionally mount in a home directory from the host to create and run Jupyter as that user instead of a default user by adding `-v /home/USERNAME:/home/USERNAME` after `-p 8888:8888`.
