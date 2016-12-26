@@ -4,14 +4,14 @@ MAINTAINER Brad Skaggs <bskaggs@acm.org>
 
 #Get eigen
 ENV EIGEN_VERSION 346ecdb
-RUN apt-get install -y mercurial && \
+RUN apt-get update && apt-get install -y mercurial && \
     hg clone -r ${EIGEN_VERSION} https://bitbucket.org/eigen/eigen/ /opt/eigen && \
     cd /opt/eigen && \
     apt-get -y remove mercurial && \
     apt-get -y autoremove
 
 #Build DyNet
-RUN apt-get update && apt-get install -y libboost-all-dev cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy
+RUN apt-get update && apt-get install -y libboost-all-dev cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy && apt-get clean
 COPY . /opt/dynet
 RUN cd /opt/dynet && \
     mkdir build && \
@@ -22,6 +22,7 @@ RUN cd /opt/dynet && \
     python setup.py install
 
 RUN pip install jupyter
+COPY docker/skel/.jupyter /etc/skel
 
 ADD https://github.com/krallin/tini/releases/download/v0.13.1/tini /tini
 RUN chmod +x /tini
