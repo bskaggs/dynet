@@ -4,14 +4,14 @@ MAINTAINER Brad Skaggs <bskaggs@acm.org>
 
 #Get eigen
 ENV EIGEN_VERSION 346ecdb
-RUN apt-get update && apt-get install -y mercurial && \
+RUN apt-get update && apt-get install -y --no-install-recommends mercurial ca-certificates && \
     hg clone -r ${EIGEN_VERSION} https://bitbucket.org/eigen/eigen/ /opt/eigen && \
     cd /opt/eigen && \
-    apt-get -y remove mercurial && \
+    apt-get -y remove mercurial ca-certificates && \
     apt-get -y autoremove
 
 #Build DyNet
-RUN apt-get update && apt-get install -y libboost-all-dev cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy && apt-get clean
+RUN apt-get update && apt-get install -y --no-install-recommends libboost-all-dev make cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy && apt-get clean
 COPY . /opt/dynet
 RUN cd /opt/dynet && \
     mkdir build && \
