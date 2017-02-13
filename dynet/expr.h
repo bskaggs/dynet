@@ -1108,7 +1108,7 @@ Expression nobackprop(const Expression& x);
  *    \f$
  *      \begin{pmatrix}
  *        x_{1,1} & x_{3,1} & x_{2,2} & x_{1,3} & x_{3,3} & x_{2,4} \\
- *        x_{1,2} & x_{1,2} & x_{3,2} & x_{2,3} & x_{1,4} & x_{3,4} \\
+ *        x_{2,1} & x_{1,2} & x_{3,2} & x_{2,3} & x_{1,4} & x_{3,4} \\
  *      \end{pmatrix}
  *    \f$
  *
@@ -1388,6 +1388,11 @@ Expression logdet(const Expression& x);
 Expression trace_of_product(const Expression& x, const Expression& y);
 
 
-} }
+}
+// Because expressions are now such a fundamental part of DyNet it doesn't
+// make much sense to keep them in separate namespaces, so we import expr
+// to the dynet namespace.
+using namespace expr;
+}
 
 #endif
