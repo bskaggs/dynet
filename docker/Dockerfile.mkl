@@ -8,11 +8,7 @@ ENV MKL_VERSION=l_mkl_2017.0.098
 ARG ACCEPT_MKL_EULA=decline
 ENV ACCEPT_MKL_EULA $ACCEPT_MKL_EULA
 RUN if [ $ACCEPT_MKL_EULA != "accept" ]; then echo "You must run docker build with '--build-arg ACCEPT_MKL_EULA=accept' to indicate you accept the EULA for MKL." > /dev/stderr; exit 1; fi
-<<<<<<< HEAD
 RUN apt-get update && apt-get install -y --no-install-recommends curl cpio && curl "${MKL_URL}" -o /opt/mkl.tar.gz && \
-=======
-RUN apt-get update && apt-get install -y curl cpio && curl "${MKL_URL}" -o /opt/mkl.tar.gz && \
->>>>>>> d7e4029272498fe06cb1367409398e06095629ea
   cd /opt && tar -xvf mkl.tar.gz && \
   cd /opt/${MKL_VERSION} && \
   sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA='$ACCEPT_MKL_EULA'/g' silent.cfg && \
@@ -24,7 +20,6 @@ RUN apt-get update && apt-get install -y curl cpio && curl "${MKL_URL}" -o /opt/
 
 #Get eigen
 ENV EIGEN_VERSION 346ecdb
-<<<<<<< HEAD
 RUN apt-get update && apt-get install -y --no-install-recommends mercurial ca-certificates && \
     hg clone -r ${EIGEN_VERSION} https://bitbucket.org/eigen/eigen/ /opt/eigen && \
     cd /opt/eigen && \
@@ -33,16 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends mercurial ca-ce
 
 #Build DyNet
 RUN apt-get update && apt-get install -y --no-install-recommends libboost-all-dev make cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy && apt-get clean
-=======
-RUN apt-get update && apt-get install -y mercurial && \
-    hg clone -r ${EIGEN_VERSION} https://bitbucket.org/eigen/eigen/ /opt/eigen && \
-    cd /opt/eigen && \
-    apt-get -y remove mercurial && \
-    apt-get -y autoremove
-
-#Build DyNet
-RUN apt-get update && apt-get install -y libboost-all-dev cmake g++ python-pip && pip install --upgrade pip && pip install setuptools cython numpy && apt-get clean
->>>>>>> d7e4029272498fe06cb1367409398e06095629ea
 COPY . /opt/dynet
 RUN cd /opt/dynet && \
     mkdir build && \
