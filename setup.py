@@ -1,6 +1,7 @@
 import logging as log
 import os
 import platform
+import tarfile
 import sys
 from distutils.command.build import build as _build
 from distutils.errors import DistutilsSetupError
@@ -11,6 +12,14 @@ from shutil import rmtree
 from subprocess import Popen
 
 from setuptools import setup
+
+# urlretrieve has a different location in Python 2 and Python 3
+import urllib
+if hasattr(urllib, "urlretrieve"):
+    urlretrieve = urllib.urlretrieve
+else:
+    import urllib.request
+    urlretrieve = urllib.request.urlretrieve
 
 
 def run_process(cmds):
@@ -45,7 +54,8 @@ class build(_build):
         self.build_dir = None
         self.cmake_path = None
         self.make_path = None
-        self.hg_path = None
+        self.eigen_path = None
+        self.eigen_url = None
         self.cxx_path = None
         self.cc_path = None
         self.install_prefix = None
@@ -67,9 +77,6 @@ class build(_build):
         if not self.make_path:
             raise DistutilsSetupError("`make` not found, and `MAKE` is not set.")
         self.make_flags = os.environ.get("MAKE_FLAGS", "-j %d" % cpu_count()).split()
-        self.hg_path = find_executable("hg")
-        if not self.hg_path:
-            raise DistutilsSetupError("`hg` not found.")
         self.cc_path = os.environ.get("CC", find_executable("gcc"))
         if not self.cc_path:
             raise DistutilsSetupError("`gcc` not found, and `CC` is not set.")
@@ -80,11 +87,17 @@ class build(_build):
         self.py_executable = py_executable
         self.py_version = py_version
 
+        self.eigen_path = os.environ.get("DYNET_EIGEN_PATH", None)
+        self.eigen_url = os.environ.get("DYNET_EIGEN_URL", "https://bitbucket.org/eigen/eigen/get/3.3.4.tar.bz2")
+
         log.info("=" * 30)
         log.info("CMake path: " + self.cmake_path)
         log.info("Make path: " + self.make_path)
         log.info("Make flags: " + " ".join(self.make_flags))
-        log.info("Mercurial path: " + self.hg_path)
+        if self.eigen_path:
+            log.info("Eigen path: " + self.eigen_path)
+        else:
+            log.info("Eigen path: download from <" + self.eigen_url + ">")
         log.info("C compiler path: " + self.cc_path)
         log.info("CXX compiler path: " + self.cxx_path)
         log.info("-" * 3)
@@ -103,10 +116,14 @@ class build(_build):
 
         os.chdir(self.build_dir)
 
-        hg_cmd = [self.hg_path, "clone", "https://bitbucket.org/eigen/eigen"]
-        log.info("Cloning Eigen...")
-        if run_process(hg_cmd) != 0:
-            raise DistutilsSetupError(" ".join(hg_cmd))
+        if not self.eigen_path:
+            log.info("Fetching Eigen...")
+            urlretrieve(self.eigen_url, "eigen.tar.bz2")
+            log.info("Unpacking Eigen...")
+            tfile = tarfile.open("eigen.tar.bz2", 'r')
+            tfile.extractall('eigen')
+            #BitBucket packages everything in a tarball with a changing root directory, so grab the only child
+            self.eigen_path = os.path.join(self.build_dir, "eigen", os.listdir('eigen')[0])
 
         os.environ["CXX"] = self.cxx_path
         os.environ["CC"] = self.cc_path
@@ -116,7 +133,7 @@ class build(_build):
             self.cmake_path,
             script_dir,
             "-DCMAKE_INSTALL_PREFIX=" + self.install_prefix,
-            "-DEIGEN3_INCLUDE_DIR=" + os.path.join(self.build_dir, "eigen"),
+            "-DEIGEN3_INCLUDE_DIR=" + self.eigen_path,
             "-DPYTHON=" + self.py_executable,
             ]
         boost_prefix = os.environ.get("BOOST")
